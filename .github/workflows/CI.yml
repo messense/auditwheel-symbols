@@ -79,43 +79,10 @@ jobs:
     strategy:
       matrix:
         platform: [
-          { manylinux: '2010', target: "x86_64-unknown-linux-gnu", arch: "x86_64" },
-          { manylinux: '2010', target: "i686-unknown-linux-gnu", arch: "i686" },
-        ]
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 3.6
-    - name: Build Wheels
-      run: |
-        echo 'curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-        source ~/.cargo/env
-        export PATH=/opt/python/cp38-cp38/bin:$PATH
-        pip install maturin
-        maturin build --release --out dist --no-sdist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }}
-        ' > build-wheel.sh
-        chmod +x build-wheel.sh
-
-        docker run --rm -v "$PWD":/io -w /io quay.io/pypa/manylinux${{ matrix.platform.manylinux }}_${{ matrix.platform.arch }} bash build-wheel.sh
-    - name: Install built wheel
-      if: matrix.platform.arch == 'x86_64'
-      run: |
-        pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
-        auditwheel-symbols --help
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
-
-  linux-cross:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform: [
-          { target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl" },
-          { target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf" },
+          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl" },
+          { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl" },
+          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl" },
+          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf" },
         ]
     container:
       image: docker://benfred/rust-musl-cross:${{ matrix.platform.image_tag }}
@@ -127,7 +94,7 @@ jobs:
       - name: Build Wheels
         run: |
           pip3 install maturin
-          maturin build --no-sdist -o dist --target ${{ matrix.platform.target }} --manylinux 2014
+          maturin build --no-sdist -o dist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }}
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -138,7 +105,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ macos, windows, linux, linux-cross ]
+    needs: [ macos, windows, linux ]
     steps:
       - uses: actions/download-artifact@v2
         with:
