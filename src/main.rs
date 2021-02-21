@@ -173,10 +173,10 @@ impl FromStr for Manylinux {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
-            "1" => Ok(Manylinux::Manylinux1),
-            "2010" => Ok(Manylinux::Manylinux2010),
-            "2014" => Ok(Manylinux::Manylinux2014),
-            "2_24" => Ok(Manylinux::Manylinux_2_24),
+            "1" | "manylinux1" => Ok(Manylinux::Manylinux1),
+            "2010" | "manylinux2010" => Ok(Manylinux::Manylinux2010),
+            "2014" | "manylinux2014" => Ok(Manylinux::Manylinux2014),
+            "2_24" | "manylinux_2_24" => Ok(Manylinux::Manylinux_2_24),
             _ => Err("Invalid value for the manylinux option"),
         }
     }
@@ -191,13 +191,14 @@ struct Opt {
         possible_values = &["1", "2010", "2014", "2_24"],
         case_insensitive = true,
     )]
-    manylinux: Manylinux,
+    manylinux: Option<Manylinux>,
     #[structopt(name = "FILE", parse(from_os_str))]
     path: PathBuf,
 }
 
 fn check_symbols(
     lib_name: &str,
+    elf: &Elf,
     buffer: &[u8],
     arch: &str,
     manylinux: Manylinux,
@@ -207,7 +208,6 @@ fn check_symbols(
         .iter()
         .find(|p| p.name == manylinux.to_string())
         .unwrap();
-    let elf = Elf::parse(&buffer).map_err(AuditWheelError::GoblinError)?;
     // This returns essentially the same as ldd
     let deps: Vec<String> = elf.libraries.iter().map(ToString::to_string).collect();
     let versioned_libraries = find_versioned_libraries(&elf, &buffer)?;
@@ -297,9 +297,20 @@ fn main() -> Result<(), AuditWheelError> {
         .rsplitn(2, '-')
         .next()
         .expect("Failed to get wheel type");
-    let arch = wheel_type
-        .splitn(2, '_')
-        .nth(1)
+    let mut parts = wheel_type.splitn(2, '_');
+    let platform = parts.next().expect("Failed to get wheel platform");
+    let manylinux = opt.manylinux.unwrap_or_else(|| {
+        if let Ok(manylinux) = platform.parse::<Manylinux>() {
+            manylinux
+        } else {
+            panic!(
+                "Cannot infer manylinux version from `{}`, pleasespecify `--manylinux` argument",
+                platform
+            );
+        }
+    });
+    let arch = parts
+        .next()
         .expect("Failed to get wheel target architecture");
     let wheel = fs_err::File::open(&opt.path).map_err(AuditWheelError::IOError)?;
     let mut archive = zip::ZipArchive::new(wheel).map_err(AuditWheelError::ZipError)?;
@@ -307,14 +318,16 @@ fn main() -> Result<(), AuditWheelError> {
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(AuditWheelError::ZipError)?;
         let lib_name = file.name().to_string();
-        if !lib_name.ends_with(".so") {
+        if lib_name.ends_with(".py") {
             continue;
         }
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)
             .map_err(AuditWheelError::IOError)?;
-        if !check_symbols(&lib_name, &buffer, arch, opt.manylinux)? {
-            compliant = false;
+        if let Ok(elf) = Elf::parse(&buffer) {
+            if !check_symbols(&lib_name, &elf, &buffer, arch, manylinux)? {
+                compliant = false;
+            }
         }
     }
     if !compliant {
