@@ -212,6 +212,13 @@ fn check_symbols(
         .iter()
         .find(|p| p.name == manylinux.to_string())
         .unwrap();
+    if !policy.symbol_versions.contains_key(arch) {
+        eprintln!(
+            "{} is not {} compliant because it has unsupported architecture {}",
+            lib_name, manylinux, arch
+        );
+        return Ok(false);
+    }
     // This returns essentially the same as ldd
     let deps: Vec<String> = elf.libraries.iter().map(ToString::to_string).collect();
     let versioned_libraries = find_versioned_libraries(&elf, &buffer)?;
