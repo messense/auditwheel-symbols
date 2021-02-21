@@ -1,6 +1,6 @@
 # auditwheel-symbols
 
-[![GitHub Actions](https://github.com/messense/auditwheel-symbols-rs/workflows/Python/badge.svg)](https://github.com/messense/auditwheel-symbols/actions?query=workflow%3APython)
+[![GitHub Actions](https://github.com/messense/auditwheel-symbols/workflows/CI/badge.svg)](https://github.com/messense/auditwheel-symbols/actions?query=workflow%3ACI)
 [![PyPI](https://img.shields.io/pypi/v/auditwheel-symbols.svg)](https://pypi.org/project/auditwheel-symbols)
 
 Find out which symbols causing auditwheel too-recent versioned symbols error.
