@@ -5,7 +5,11 @@ use std::path::PathBuf;
 use std::process;
 use std::str::FromStr;
 
-use goblin::elf::{sym::STT_FUNC, Elf};
+use goblin::elf::{
+    header::{EM_386, EM_AARCH64, EM_ARM, EM_PPC64, EM_S390, EM_X86_64},
+    sym::STT_FUNC,
+    Elf,
+};
 use goblin::strtab::Strtab;
 use regex::Regex;
 use scroll::Pread;
@@ -303,28 +307,62 @@ fn main() -> Result<(), AuditWheelError> {
         if let Ok(manylinux) = platform.parse::<Manylinux>() {
             manylinux
         } else {
-            panic!(
-                "Cannot infer manylinux version from `{}`, pleasespecify `--manylinux` argument",
+            eprintln!(
+                "Cannot infer manylinux version from `{}`, please specify `--manylinux` argument",
                 platform
             );
+            process::exit(1);
         }
     });
-    let arch = parts
-        .next()
-        .expect("Failed to get wheel target architecture");
-    let wheel = fs_err::File::open(&opt.path).map_err(AuditWheelError::IOError)?;
-    let mut archive = zip::ZipArchive::new(wheel).map_err(AuditWheelError::ZipError)?;
     let mut compliant = true;
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(AuditWheelError::ZipError)?;
-        let lib_name = file.name().to_string();
-        if lib_name.ends_with(".py") {
-            continue;
+    let wheel = fs_err::File::open(&opt.path).map_err(AuditWheelError::IOError)?;
+    if let Ok(mut archive) = zip::ZipArchive::new(wheel) {
+        // wheel file
+        let arch = parts
+            .next()
+            .expect("Failed to get wheel target architecture");
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i).map_err(AuditWheelError::ZipError)?;
+            let lib_name = file.name().to_string();
+            if lib_name.ends_with(".py") {
+                continue;
+            }
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer)
+                .map_err(AuditWheelError::IOError)?;
+            if let Ok(elf) = Elf::parse(&buffer) {
+                if !check_symbols(&lib_name, &elf, &buffer, arch, manylinux)? {
+                    compliant = false;
+                }
+            }
         }
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)
-            .map_err(AuditWheelError::IOError)?;
+    } else {
+        // maybe a dylib
+        let buffer = fs_err::read(&opt.path).map_err(AuditWheelError::IOError)?;
         if let Ok(elf) = Elf::parse(&buffer) {
+            let lib_name = opt
+                .path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .expect("Failed to get filename");
+            let arch = match elf.header.e_machine {
+                EM_X86_64 => "x86_64",
+                EM_386 => "i686",
+                EM_AARCH64 => "aarch64",
+                EM_ARM => "armv7l",
+                EM_S390 => "s390x",
+                EM_PPC64 => {
+                    if elf.little_endian {
+                        "ppc64le"
+                    } else {
+                        "ppc64"
+                    }
+                }
+                _ => {
+                    eprintln!("Unsupported target architecture");
+                    process::exit(1);
+                }
+            };
             if !check_symbols(&lib_name, &elf, &buffer, arch, manylinux)? {
                 compliant = false;
             }
