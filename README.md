@@ -14,10 +14,10 @@ pip install auditwheel-symbols
 ## Usage
 
 ```bash
-auditwheel-symbols 0.1.0
+auditwheel-symbols 0.1.1
 
 USAGE:
-    auditwheel-symbols <FILE> --manylinux <manylinux>
+    auditwheel-symbols [OPTIONS] <FILE>
 
 FLAGS:
     -h, --help       Prints help information
