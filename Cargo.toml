@@ -3,6 +3,10 @@ name = "auditwheel-symbols"
 version = "0.1.0"
 authors = ["messense <messense@icloud.com>"]
 edition = "2018"
+description = "Find out which symbols causing auditwheel too-recent versioned symbols error."
+license = "MIT"
+repository = "https://github.com/messense/auditwheel-symbols.git"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
