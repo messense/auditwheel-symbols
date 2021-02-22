@@ -3,7 +3,7 @@
 [![GitHub Actions](https://github.com/messense/auditwheel-symbols/workflows/CI/badge.svg)](https://github.com/messense/auditwheel-symbols/actions?query=workflow%3ACI)
 [![PyPI](https://img.shields.io/pypi/v/auditwheel-symbols.svg)](https://pypi.org/project/auditwheel-symbols)
 
-Find out which symbols causing auditwheel too-recent versioned symbols error.
+Find out which symbols are causing auditwheel too-recent versioned symbols error, resolves [pypa/auditwheel#36](https://github.com/pypa/auditwheel/issues/36) .
 
 ## Installation
 
