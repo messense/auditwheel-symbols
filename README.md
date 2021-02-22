@@ -14,6 +14,7 @@ pip install auditwheel-symbols
 ## Usage
 
 ```bash
+❯ auditwheel-symbols --help
 auditwheel-symbols 0.1.1
 
 USAGE:
@@ -28,6 +29,13 @@ OPTIONS:
 
 ARGS:
     <FILE>
+
+❯ auditwheel-symbols --manylinux 2014 ~/Downloads/rjieba-0.1.5-cp36-abi3-manylinux2010_x86_64.whl
+rjieba/rjieba.abi3.so is manylinux2014 compliant.
+
+❯ auditwheel-symbols --manylinux 1 ~/Downloads/rjieba-0.1.5-cp36-abi3-manylinux2010_x86_64.whl
+rjieba/rjieba.abi3.so is not manylinux1 compliant because it links the following forbidden libraries:
+libc.so.6	offending symbols:  memcpy@@GLIBC_2.14
 ```
 
 ## License
