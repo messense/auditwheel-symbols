@@ -15,7 +15,7 @@ pip install auditwheel-symbols
 
 ```bash
 ❯ auditwheel-symbols --help
-auditwheel-symbols 0.1.1
+auditwheel-symbols 0.1.4
 
 USAGE:
     auditwheel-symbols [OPTIONS] <FILE>
