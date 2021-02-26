@@ -261,11 +261,19 @@ fn check_symbols(
                     .map(|v| format!("{}_{}", name, v))
                     .collect();
                 let offending_symbols = find_incompliant_symbols(&elf, &offending_symbol_versions)?;
-                let offender = format!(
-                    "{}\toffending symbols:  {}",
-                    library.name,
-                    offending_symbols.join(", ")
-                );
+                let offender = if offending_symbols.is_empty() {
+                    format!(
+                        "{}\toffending versions:  {}",
+                        library.name,
+                        offending_symbol_versions.join(", ")
+                    )
+                } else {
+                    format!(
+                        "{}\toffending symbols:  {}",
+                        library.name,
+                        offending_symbols.join(", ")
+                    )
+                };
                 offenders.insert(offender);
             }
         }
