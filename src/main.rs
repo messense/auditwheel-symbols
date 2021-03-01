@@ -263,13 +263,13 @@ fn check_symbols(
                 let offending_symbols = find_incompliant_symbols(&elf, &offending_symbol_versions)?;
                 let offender = if offending_symbols.is_empty() {
                     format!(
-                        "{}\toffending versions:  {}",
+                        "{}\toffending versions: {}",
                         library.name,
                         offending_symbol_versions.join(", ")
                     )
                 } else {
                     format!(
-                        "{}\toffending symbols:  {}",
+                        "{}\toffending symbols: {}",
                         library.name,
                         offending_symbols.join(", ")
                     )
