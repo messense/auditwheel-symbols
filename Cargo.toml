@@ -1,6 +1,6 @@
 [package]
 name = "auditwheel-symbols"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["messense <messense@icloud.com>"]
 edition = "2018"
 description = "Find out which symbols are causing auditwheel too-recent versioned symbols error."
