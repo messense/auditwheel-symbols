@@ -164,9 +164,9 @@ pub enum Manylinux {
 impl fmt::Display for Manylinux {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Manylinux::Manylinux1 => write!(f, "manylinux1"),
-            Manylinux::Manylinux2010 => write!(f, "manylinux2010"),
-            Manylinux::Manylinux2014 => write!(f, "manylinux2014"),
+            Manylinux::Manylinux1 => write!(f, "manylinux_2_5"),
+            Manylinux::Manylinux2010 => write!(f, "manylinux_2_12"),
+            Manylinux::Manylinux2014 => write!(f, "manylinux_2_17"),
             Manylinux::Manylinux_2_24 => write!(f, "manylinux_2_24"),
         }
     }
@@ -177,9 +177,9 @@ impl FromStr for Manylinux {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
-            "1" | "manylinux1" => Ok(Manylinux::Manylinux1),
-            "2010" | "manylinux2010" => Ok(Manylinux::Manylinux2010),
-            "2014" | "manylinux2014" => Ok(Manylinux::Manylinux2014),
+            "2_5" | "1" | "manylinux1" => Ok(Manylinux::Manylinux1),
+            "2_12" | "2010" | "manylinux2010" => Ok(Manylinux::Manylinux2010),
+            "2_17" | "2014" | "manylinux2014" => Ok(Manylinux::Manylinux2014),
             "2_24" | "manylinux_2_24" => Ok(Manylinux::Manylinux_2_24),
             _ => Err("Invalid value for the manylinux option"),
         }
@@ -192,7 +192,7 @@ struct Opt {
     #[structopt(
         short,
         long,
-        possible_values = &["1", "2010", "2014", "2_24"],
+        possible_values = &["1", "2010", "2014", "2_5", "2_12", "2_17", "2_24"],
         case_insensitive = true,
     )]
     manylinux: Option<Manylinux>,

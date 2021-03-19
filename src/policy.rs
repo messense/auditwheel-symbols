@@ -7,6 +7,8 @@ use serde::Deserialize;
 pub struct Policy {
     /// manylinux platform tag name
     pub name: String,
+    /// manylinux platform tag aliases
+    pub aliases: Vec<String>,
     /// policy priority
     pub priority: i64,
     /// platform architecture to symbol versions map
@@ -33,7 +35,10 @@ mod test {
         assert!(linux.symbol_versions.is_empty());
         assert!(linux.lib_whitelist.is_empty());
 
-        let manylinux2010 = policies.iter().find(|p| p.name == "manylinux2010").unwrap();
+        let manylinux2010 = policies
+            .iter()
+            .find(|p| p.name == "manylinux2010" || p.aliases.contains(&"manylinux2010".to_string()))
+            .unwrap();
         assert!(manylinux2010.lib_whitelist.contains("libc.so.6"));
         let symbol_version = &manylinux2010.symbol_versions["x86_64"];
         assert_eq!(symbol_version["CXXABI"].len(), 4);
