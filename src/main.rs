@@ -159,6 +159,8 @@ pub enum Manylinux {
     Manylinux2014,
     #[allow(non_camel_case_types)]
     Manylinux_2_24,
+    #[allow(non_camel_case_types)]
+    Manylinux_2_27,
 }
 
 impl fmt::Display for Manylinux {
@@ -168,6 +170,7 @@ impl fmt::Display for Manylinux {
             Manylinux::Manylinux2010 => write!(f, "manylinux_2_12"),
             Manylinux::Manylinux2014 => write!(f, "manylinux_2_17"),
             Manylinux::Manylinux_2_24 => write!(f, "manylinux_2_24"),
+            Manylinux::Manylinux_2_27 => write!(f, "manylinux_2_27"),
         }
     }
 }
@@ -181,6 +184,7 @@ impl FromStr for Manylinux {
             "2_12" | "2010" | "manylinux2010" => Ok(Manylinux::Manylinux2010),
             "2_17" | "2014" | "manylinux2014" => Ok(Manylinux::Manylinux2014),
             "2_24" | "manylinux_2_24" => Ok(Manylinux::Manylinux_2_24),
+            "2_27" | "manylinux_2_27" => Ok(Manylinux::Manylinux_2_27),
             _ => Err("Invalid value for the manylinux option"),
         }
     }
@@ -192,7 +196,7 @@ struct Opt {
     #[structopt(
         short,
         long,
-        possible_values = &["1", "2010", "2014", "2_5", "2_12", "2_17", "2_24"],
+        possible_values = &["1", "2010", "2014", "2_5", "2_12", "2_17", "2_24", "2_27"],
         case_insensitive = true,
     )]
     manylinux: Option<Manylinux>,
