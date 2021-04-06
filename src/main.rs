@@ -24,7 +24,7 @@ mod policy;
 pub enum AuditWheelError {
     /// The wheel couldn't be read
     #[error("Failed to read the wheel")]
-    IOError(#[source] io::Error),
+    IoError(#[source] io::Error),
     /// The wheel couldn't be read
     #[error("Failed to read the wheel")]
     ZipError(#[source] zip::result::ZipError),
@@ -334,7 +334,7 @@ fn main() -> Result<(), AuditWheelError> {
         }
     });
     let mut compliant = true;
-    let wheel = fs_err::File::open(&opt.path).map_err(AuditWheelError::IOError)?;
+    let wheel = fs_err::File::open(&opt.path).map_err(AuditWheelError::IoError)?;
     if let Ok(mut archive) = zip::ZipArchive::new(wheel) {
         // wheel file
         let arch = parts
@@ -348,7 +348,7 @@ fn main() -> Result<(), AuditWheelError> {
             }
             let mut buffer = Vec::new();
             file.read_to_end(&mut buffer)
-                .map_err(AuditWheelError::IOError)?;
+                .map_err(AuditWheelError::IoError)?;
             if let Ok(elf) = Elf::parse(&buffer) {
                 if !check_symbols(&lib_name, &elf, &buffer, arch, manylinux)? {
                     compliant = false;
@@ -357,7 +357,7 @@ fn main() -> Result<(), AuditWheelError> {
         }
     } else {
         // maybe a dylib
-        let buffer = fs_err::read(&opt.path).map_err(AuditWheelError::IOError)?;
+        let buffer = fs_err::read(&opt.path).map_err(AuditWheelError::IoError)?;
         if let Ok(elf) = Elf::parse(&buffer) {
             let lib_name = opt
                 .path
