@@ -22,6 +22,14 @@ impl Policy {
     pub fn load() -> Vec<Self> {
         serde_json::from_slice(include_bytes!("policy.json")).expect("invalid policy.json")
     }
+
+    pub fn description(&self) -> String {
+        if self.aliases.is_empty() {
+            self.name.clone()
+        } else {
+            format!("{}(aka {})", &self.name, self.aliases.join(","))
+        }
+    }
 }
 
 #[cfg(test)]

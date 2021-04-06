@@ -224,7 +224,9 @@ fn check_symbols(
     if !policy.symbol_versions.contains_key(arch) {
         eprintln!(
             "{} is not {} compliant because it has unsupported architecture {}",
-            lib_name, manylinux, arch
+            lib_name,
+            policy.description(),
+            arch
         );
         return Ok(false);
     }
@@ -292,7 +294,7 @@ fn check_symbols(
     let is_libpython = Regex::new(r"^libpython3\.\d+\.so\.\d+\.\d+$").unwrap();
     let offenders: Vec<String> = offenders.into_iter().collect();
     match offenders.as_slice() {
-        [] => eprintln!("{} is {} compliant.", lib_name, manylinux),
+        [] => eprintln!("{} is {} compliant.", lib_name, policy.description()),
         [lib] if is_libpython.is_match(lib) => {
             eprintln!(
                 "{} links libpython ({}), which libraries must not do.\n",
@@ -303,7 +305,8 @@ fn check_symbols(
         offenders => {
             eprintln!(
                 "{} is not {} compliant because it links the following forbidden libraries:",
-                lib_name, manylinux
+                lib_name,
+                policy.description()
             );
             for offender in offenders {
                 eprintln!("{}", offender);
