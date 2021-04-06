@@ -21,7 +21,7 @@ mod policy;
 /// Error raised during auditing an elf file for manylinux compatibility
 #[derive(Error, Debug)]
 #[error("Ensuring manylinux compliance failed")]
-pub enum AuditWheelError {
+enum AuditWheelError {
     /// The wheel couldn't be read
     #[error("Failed to read the wheel")]
     IoError(#[source] io::Error),
@@ -153,25 +153,20 @@ fn find_incompliant_symbols(
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum Manylinux {
-    Manylinux1,
-    Manylinux2010,
-    Manylinux2014,
-    #[allow(non_camel_case_types)]
-    Manylinux_2_24,
-    #[allow(non_camel_case_types)]
-    Manylinux_2_27,
+struct Manylinux {
+    x: u16,
+    y: u16,
+}
+
+impl Manylinux {
+    fn new(x: u16, y: u16) -> Self {
+        Self { x, y }
+    }
 }
 
 impl fmt::Display for Manylinux {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Manylinux::Manylinux1 => write!(f, "manylinux_2_5"),
-            Manylinux::Manylinux2010 => write!(f, "manylinux_2_12"),
-            Manylinux::Manylinux2014 => write!(f, "manylinux_2_17"),
-            Manylinux::Manylinux_2_24 => write!(f, "manylinux_2_24"),
-            Manylinux::Manylinux_2_27 => write!(f, "manylinux_2_27"),
-        }
+        write!(f, "manylinux_{}_{}", self.x, self.y)
     }
 }
 
@@ -180,12 +175,22 @@ impl FromStr for Manylinux {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
-            "2_5" | "1" | "manylinux1" => Ok(Manylinux::Manylinux1),
-            "2_12" | "2010" | "manylinux2010" => Ok(Manylinux::Manylinux2010),
-            "2_17" | "2014" | "manylinux2014" => Ok(Manylinux::Manylinux2014),
-            "2_24" | "manylinux_2_24" => Ok(Manylinux::Manylinux_2_24),
-            "2_27" | "manylinux_2_27" => Ok(Manylinux::Manylinux_2_27),
-            _ => Err("Invalid value for the manylinux option"),
+            "2_5" | "1" | "manylinux1" => Ok(Manylinux::new(2, 5)),
+            "2_12" | "2010" | "manylinux2010" => Ok(Manylinux::new(2, 12)),
+            "2_17" | "2014" | "manylinux2014" => Ok(Manylinux::new(2, 17)),
+            _ => {
+                let value = value.strip_prefix("manylinux_").unwrap_or(value);
+                let mut parts = value.split('_');
+                let x = parts
+                    .next()
+                    .and_then(|x| x.parse::<u16>().ok())
+                    .ok_or("invalid manylinux option")?;
+                let y = parts
+                    .next()
+                    .and_then(|y| y.parse::<u16>().ok())
+                    .ok_or("invalid manylinux option")?;
+                Ok(Manylinux::new(x, y))
+            }
         }
     }
 }
