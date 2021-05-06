@@ -19,21 +19,23 @@ jobs:
           target: aarch64-apple-darwin
           profile: minimal
           default: true
-      - name: Install maturin
-        run: pip install maturin
       - name: Build wheels - x86_64
+        uses: messense/maturin-action@v1
+        with:
+          target: x86_64-apple-darwin
+          args: --release --out dist
+      - name: Install built wheel - x86_64
         run: |
-          maturin build --target x86_64-apple-darwin --release --out dist
           pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
+          auditwheel-symbols --help
       - name: Build wheels - universal2
-        env:
-          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
-          MACOSX_DEPLOYMENT_TARGET: '10.9'
+        uses: messense/maturin-action@v1
+        with:
+          args: --release --universal2 --out dist --no-sdist
+      - name: Install built wheel - universal2
         run: |
-          # set SDKROOT for C dependencies like bzip2
-          export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-          maturin build --release --universal2 --out dist --no-sdist
           pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
+          auditwheel-symbols --help
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -74,11 +76,13 @@ jobs:
           target: ${{ matrix.platform.target }}
           profile: minimal
           default: true
-      - name: Install maturin
-        run: pip install maturin
       - name: Build wheels
+        uses: messense/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --no-sdist
+      - name: Install built wheel
         run: |
-          maturin build --release --out dist --no-sdist --target ${{ matrix.platform.target }}
           pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
           auditwheel-symbols --help
       - name: Upload wheels
@@ -92,10 +96,10 @@ jobs:
     strategy:
       matrix:
         platform: [
-          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl" },
-          { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl" },
-          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl" },
-          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf" },
+          { target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl" },
+          { target: "i686-unknown-linux-musl", image_tag: "i686-musl" },
+          { target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl" },
+          { target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf" },
         ]
     container:
       image: docker://benfred/rust-musl-cross:${{ matrix.platform.image_tag }}
@@ -105,9 +109,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build Wheels
-        run: |
-          pip3 install maturin
-          maturin build --no-sdist --release -o dist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }}
+        uses: messense/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          manylinux: auto
+          container: off
+          args: --no-sdist --release -o dist
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
