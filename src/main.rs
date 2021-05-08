@@ -152,7 +152,7 @@ fn find_incompliant_symbols(
     Ok(symbols)
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 struct Manylinux {
     x: u16,
     y: u16,
@@ -317,6 +317,42 @@ fn check_symbols(
     Ok(true)
 }
 
+fn parse_platform_from_filename(filename: &str) -> Vec<(Manylinux, String)> {
+    let wheel_type = filename
+        .rsplitn(2, '-')
+        .next()
+        .expect("Failed to get wheel type");
+    let mut platforms = Vec::new();
+    let mut found = HashSet::new();
+    for tag in wheel_type.split('.') {
+        if tag.starts_with("linux") {
+            continue;
+        }
+        let tag = tag.strip_prefix("manylinux").unwrap_or(tag);
+        let (manylinux, arch) = if tag.starts_with("_") {
+            // manylinux_x_y_arch
+            let parts: Vec<&str> = tag[1..].split('_').collect();
+            let manylinux = parts[..2].join("_");
+            let arch = parts[2..].join("_");
+            (manylinux, arch)
+        } else {
+            // manylinuxYEAR_arch
+            if let Some((ver, arch)) = tag.split_once('_') {
+                (ver.to_string(), arch.to_string())
+            } else {
+                continue;
+            }
+        };
+        if let Ok(manylinux) = manylinux.parse::<Manylinux>() {
+            if !found.contains(&manylinux) {
+                found.insert(manylinux);
+                platforms.push((manylinux, arch));
+            }
+        }
+    }
+    platforms
+}
+
 fn main() -> Result<(), AuditWheelError> {
     let opt = Opt::from_args();
     let filename = opt
@@ -324,74 +360,57 @@ fn main() -> Result<(), AuditWheelError> {
         .file_stem()
         .and_then(|s| s.to_str())
         .expect("Failed to get wheel filename");
-    let wheel_type = filename
-        .rsplitn(2, '-')
-        .next()
-        .expect("Failed to get wheel type");
-    let mut parts = wheel_type.splitn(2, '_');
-    let platform = parts.next().expect("Failed to get wheel platform");
-    let manylinux = opt.manylinux.unwrap_or_else(|| {
-        if let Ok(manylinux) = platform.parse::<Manylinux>() {
-            manylinux
-        } else {
-            eprintln!(
-                "Cannot infer manylinux version from `{}`, please specify `--manylinux` argument",
-                platform
-            );
-            process::exit(1);
-        }
-    });
+    let platforms = parse_platform_from_filename(filename);
     let mut compliant = true;
-    let wheel = fs_err::File::open(&opt.path).map_err(AuditWheelError::IoError)?;
-    if let Ok(mut archive) = zip::ZipArchive::new(wheel) {
-        // wheel file
-        let arch = parts
-            .next()
-            .expect("Failed to get wheel target architecture");
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i).map_err(AuditWheelError::ZipError)?;
-            let lib_name = file.name().to_string();
-            if lib_name.ends_with(".py") {
-                continue;
+    for (tag, arch) in platforms {
+        let manylinux = opt.manylinux.unwrap_or(tag);
+        let wheel = fs_err::File::open(&opt.path).map_err(AuditWheelError::IoError)?;
+        if let Ok(mut archive) = zip::ZipArchive::new(wheel) {
+            for i in 0..archive.len() {
+                let mut file = archive.by_index(i).map_err(AuditWheelError::ZipError)?;
+                let lib_name = file.name().to_string();
+                if lib_name.ends_with(".py") {
+                    continue;
+                }
+                let mut buffer = Vec::new();
+                file.read_to_end(&mut buffer)
+                    .map_err(AuditWheelError::IoError)?;
+                if let Ok(elf) = Elf::parse(&buffer) {
+                    if !check_symbols(&lib_name, &elf, &buffer, &arch, manylinux)? {
+                        compliant = false;
+                    }
+                }
             }
-            let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer)
-                .map_err(AuditWheelError::IoError)?;
+        } else {
+            // maybe a dylib
+            let buffer = fs_err::read(&opt.path).map_err(AuditWheelError::IoError)?;
             if let Ok(elf) = Elf::parse(&buffer) {
+                let lib_name = opt
+                    .path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .expect("Failed to get filename");
+                let arch = match elf.header.e_machine {
+                    EM_X86_64 => "x86_64",
+                    EM_386 => "i686",
+                    EM_AARCH64 => "aarch64",
+                    EM_ARM => "armv7l",
+                    EM_S390 => "s390x",
+                    EM_PPC64 => {
+                        if elf.little_endian {
+                            "ppc64le"
+                        } else {
+                            "ppc64"
+                        }
+                    }
+                    _ => {
+                        eprintln!("Unsupported target architecture");
+                        process::exit(1);
+                    }
+                };
                 if !check_symbols(&lib_name, &elf, &buffer, arch, manylinux)? {
                     compliant = false;
                 }
-            }
-        }
-    } else {
-        // maybe a dylib
-        let buffer = fs_err::read(&opt.path).map_err(AuditWheelError::IoError)?;
-        if let Ok(elf) = Elf::parse(&buffer) {
-            let lib_name = opt
-                .path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .expect("Failed to get filename");
-            let arch = match elf.header.e_machine {
-                EM_X86_64 => "x86_64",
-                EM_386 => "i686",
-                EM_AARCH64 => "aarch64",
-                EM_ARM => "armv7l",
-                EM_S390 => "s390x",
-                EM_PPC64 => {
-                    if elf.little_endian {
-                        "ppc64le"
-                    } else {
-                        "ppc64"
-                    }
-                }
-                _ => {
-                    eprintln!("Unsupported target architecture");
-                    process::exit(1);
-                }
-            };
-            if !check_symbols(&lib_name, &elf, &buffer, arch, manylinux)? {
-                compliant = false;
             }
         }
     }
@@ -399,4 +418,33 @@ fn main() -> Result<(), AuditWheelError> {
         process::exit(1);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_platform_from_filename, Manylinux};
+
+    #[test]
+    fn test_parse_platform() {
+        assert_eq!(
+            parse_platform_from_filename(
+                "auditwheel_symbols-0.1.7-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64"
+            ),
+            vec![(Manylinux::new(2, 12), "x86_64".to_string()),],
+        );
+        assert_eq!(
+            parse_platform_from_filename(
+                "auditwheel_symbols-0.1.7-py3-none-manylinux_2_12_i686.manylinux2010_i686"
+            ),
+            vec![(Manylinux::new(2, 12), "i686".to_string()),],
+        );
+        assert_eq!(
+            parse_platform_from_filename("auditwheel_symbols-0.1.7-py3-none-manylinux2010_x86_64"),
+            vec![(Manylinux::new(2, 12), "x86_64".to_string())],
+        );
+        assert_eq!(
+            parse_platform_from_filename("auditwheel_symbols-0.1.7-py3-none-manylinux_2_12_x86_64"),
+            vec![(Manylinux::new(2, 12), "x86_64".to_string())],
+        );
+    }
 }
