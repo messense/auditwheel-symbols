@@ -111,6 +111,7 @@ jobs:
       - name: Build Wheels
         uses: messense/maturin-action@v1
         with:
+          rust-toolchain: '1.52'
           target: ${{ matrix.platform.target }}
           manylinux: auto
           container: off
