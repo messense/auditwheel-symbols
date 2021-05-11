@@ -100,18 +100,18 @@ jobs:
           { target: "i686-unknown-linux-musl", image_tag: "i686-musl" },
           { target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl" },
           { target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf" },
+          { target: "powerpc64le-unknown-linux-musl", image_tag: "powerpc64le-musl" },
         ]
     container:
-      image: docker://benfred/rust-musl-cross:${{ matrix.platform.image_tag }}
+      image: docker://messense/rust-musl-cross:${{ matrix.platform.image_tag }}
       env:
-        RUSTUP_HOME: /root/.rustup
-        CARGO_HOME: /root/.cargo
+        CFLAGS_armv7_unknown_linux_musleabihf: '-mfpu=vfpv3-d16'
     steps:
       - uses: actions/checkout@v2
       - name: Build Wheels
-        uses: messense/maturin-action@v1
+        uses: messense/maturin-action@main
         with:
-          rust-toolchain: '1.52'
+          maturin-version: 'v0.10.5-beta.5'
           target: ${{ matrix.platform.target }}
           manylinux: auto
           container: off
