@@ -138,10 +138,7 @@ fn find_incompliant_symbols(
     let strtab = &elf.strtab;
     for sym in &elf.syms {
         if sym.st_type() == STT_FUNC {
-            let name = strtab
-                .get(sym.st_name)
-                .unwrap_or(Ok("BAD NAME"))
-                .map_err(AuditWheelError::GoblinError)?;
+            let name = strtab.get_at(sym.st_name).unwrap_or("BAD NAME");
             for symbol_version in symbol_versions {
                 if name.ends_with(&format!("@{}", symbol_version)) {
                     symbols.push(name.to_string());
