@@ -112,18 +112,20 @@ fn find_versioned_libraries(
                     .gread::<GnuVersionNeedAux>(&mut offset)
                     .map_err(goblin::error::Error::Scroll)
                     .map_err(AuditWheelError::GoblinError)?;
-                let aux_name = &strtab[ver_aux.name as usize];
-                versions.insert(aux_name.to_string());
+                if let Some(aux_name) = strtab.get_at(ver_aux.name as usize) {
+                    versions.insert(aux_name.to_string());
+                }
             }
-            let name = &strtab[ver.file as usize];
-            // Skip dynamic linker/loader
-            if name.starts_with("ld-linux") || name == "ld64.so.2" || name == "ld64.so.1" {
-                continue;
+            if let Some(name) = strtab.get_at(ver.file as usize) {
+                // Skip dynamic linker/loader
+                if name.starts_with("ld-linux") || name == "ld64.so.2" || name == "ld64.so.1" {
+                    continue;
+                }
+                symbols.push(VersionedLibrary {
+                    name: name.to_string(),
+                    versions,
+                });
             }
-            symbols.push(VersionedLibrary {
-                name: name.to_string(),
-                versions,
-            });
         }
     }
     Ok(symbols)
