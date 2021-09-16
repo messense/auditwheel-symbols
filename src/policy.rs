@@ -14,8 +14,11 @@ pub struct Policy {
     /// platform architecture to symbol versions map
     #[serde(rename = "symbol_versions")]
     pub symbol_versions: HashMap<String, HashMap<String, HashSet<String>>>,
+    /// whitelisted libraries
     #[serde(rename = "lib_whitelist")]
     pub lib_whitelist: HashSet<String>,
+    /// blacklisted symbols of whitelisted libraries
+    pub blacklist: HashMap<String, HashSet<String>>,
 }
 
 impl Policy {
