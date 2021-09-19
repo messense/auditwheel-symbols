@@ -39,7 +39,7 @@ dependencies = [
 
 [[package]]
 name = "auditwheel-symbols"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "fs-err",
  "goblin",
