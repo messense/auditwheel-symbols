@@ -12,13 +12,10 @@ readme = "README.md"
 
 [dependencies]
 fs-err = "2.5.0"
-goblin = "0.4.0"
+goblin = "0.4.3"
 regex = "1.4.3"
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.62"
 structopt = "0.3.21"
 thiserror = "1.0.24"
 zip = "0.5.10"
-
-[patch.crates-io]
-goblin = { git = "https://github.com/m4b/goblin.git" }
