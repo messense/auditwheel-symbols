@@ -23,7 +23,7 @@ jobs:
         uses: messense/maturin-action@v1
         with:
           target: x86_64-apple-darwin
-          args: --release --out dist
+          args: --release --out dist --sdist
       - name: Install built wheel - x86_64
         run: |
           pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
@@ -31,7 +31,7 @@ jobs:
       - name: Build wheels - universal2
         uses: messense/maturin-action@v1
         with:
-          args: --release --universal2 --out dist --no-sdist
+          args: --release --universal2 --out dist
       - name: Install built wheel - universal2
         run: |
           pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
@@ -80,7 +80,7 @@ jobs:
         uses: messense/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --no-sdist
+          args: --release --out dist
       - name: Install built wheel
         run: |
           pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
@@ -114,14 +114,14 @@ jobs:
           target: ${{ matrix.platform.target }}
           manylinux: auto
           container: off
-          args: --no-sdist --release -o dist
+          args: --release -o dist
       - name: Build Wheels - musllinux
         uses: messense/maturin-action@main
         with:
           target: ${{ matrix.platform.target }}
           manylinux: musllinux_1_1
           container: off
-          args: --no-sdist --release -o dist
+          args: --release -o dist
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
