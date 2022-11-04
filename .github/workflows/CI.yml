@@ -97,7 +97,7 @@ jobs:
           { target: "powerpc64le-unknown-linux-musl", image_tag: "powerpc64le-musl" },
         ]
     container:
-      image: docker://PyO3/rust-musl-cross:${{ matrix.platform.image_tag }}
+      image: docker://messense/rust-musl-cross:${{ matrix.platform.image_tag }}
       env:
         CFLAGS_armv7_unknown_linux_musleabihf: '-mfpu=vfpv3-d16'
     steps:
