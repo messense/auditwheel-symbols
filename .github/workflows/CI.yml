@@ -18,7 +18,7 @@ jobs:
         with:
           targets: aarch64-apple-darwin
       - name: Build wheels - x86_64
-        uses: messense/maturin-action@v1
+        uses: PyO3/maturin-action@v1
         with:
           target: x86_64-apple-darwin
           args: --release --out dist --sdist
@@ -27,7 +27,7 @@ jobs:
           pip install auditwheel-symbols --no-index --find-links dist --force-reinstall
           auditwheel-symbols --help
       - name: Build wheels - universal2
-        uses: messense/maturin-action@v1
+        uses: PyO3/maturin-action@v1
         with:
           args: --release --universal2 --out dist
       - name: Install built wheel - universal2
@@ -71,7 +71,7 @@ jobs:
         with:
           targets: ${{ matrix.platform.target }}
       - name: Build wheels
-        uses: messense/maturin-action@v1
+        uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist
@@ -97,20 +97,20 @@ jobs:
           { target: "powerpc64le-unknown-linux-musl", image_tag: "powerpc64le-musl" },
         ]
     container:
-      image: docker://messense/rust-musl-cross:${{ matrix.platform.image_tag }}
+      image: docker://PyO3/rust-musl-cross:${{ matrix.platform.image_tag }}
       env:
         CFLAGS_armv7_unknown_linux_musleabihf: '-mfpu=vfpv3-d16'
     steps:
       - uses: actions/checkout@v3
       - name: Build Wheels - manylinux
-        uses: messense/maturin-action@main
+        uses: PyO3/maturin-action@main
         with:
           target: ${{ matrix.platform.target }}
           manylinux: auto
           container: off
           args: --release -o dist
       - name: Build Wheels - musllinux
-        uses: messense/maturin-action@main
+        uses: PyO3/maturin-action@main
         with:
           target: ${{ matrix.platform.target }}
           manylinux: musllinux_1_1
