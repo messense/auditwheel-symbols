@@ -131,7 +131,7 @@ struct Opt {
     #[structopt(
         short,
         long,
-        possible_values = &["1", "2010", "2014", "2_5", "2_12", "2_17", "2_24", "2_27"],
+        possible_values = &["1", "2010", "2014", "2_5", "2_12", "2_17", "2_24", "2_27", "2_28", "2_31"],
         case_insensitive = true,
     )]
     manylinux: Option<Manylinux>,
