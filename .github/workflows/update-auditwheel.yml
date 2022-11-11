@@ -1,0 +1,31 @@
+name: Update auditwheel policies
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run every week
+    - cron: '0 0 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    permissions:
+      contents: write  # for peter-evans/create-pull-request to create branch
+      pull-requests: write  # for peter-evans/create-pull-request to create a PR
+    name: Update auditwheel policies
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Fetch latest policy files
+      run: |
+        curl https://raw.githubusercontent.com/pypa/auditwheel/main/src/auditwheel/policy/manylinux-policy.json > src/policy.json
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        delete-branch: true
+        add-paths: |
+          src/*.json
+        title: 'Update manylinux policies to the latest main'
+        commit-message: 'Update manylinux policies to the latest main'
